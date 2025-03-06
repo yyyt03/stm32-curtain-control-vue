@@ -1,0 +1,6 @@
+
+
+1.当关闭uni-app上的开关时，系统下发的指令：
+topic: $sys/DuoX1d1Wan/D001/thing/property/set, topic_len: 39, payload: {"id":"55","version":"1.0","params":{"led0":false}}, payload_len: 51
+2.当打开uni-app上的开关时，系统下发的指令：
+topic: $sys/DuoX1d1Wan/D001/thing/property/set, topic_len: 39, payload: {"id":"56","version":"1.0","params":{"led0":true}}, payload_len: 50
