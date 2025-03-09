@@ -46,20 +46,23 @@
 				<view class="timer-control">
 					<view class="time-row">
 						<text class="time-label">开始:</text>
-						<picker mode="time" :value="start_time" @change="onStartTimeChange">
+						<picker mode="time" :value="start_time" @change="onStartTimeChange"
+							@click="isEditingTime = true">
 							<view class="time-picker">{{ start_time }}</view>
 						</picker>
 					</view>
 					<view class="time-row">
 						<text class="time-label">结束:</text>
-						<picker mode="time" :value="end_time" @change="onEndTimeChange">
+						<picker mode="time" :value="end_time" @change="onEndTimeChange" @click="isEditingTime = true">
 							<view class="time-picker">{{ end_time }}</view>
 						</picker>
 					</view>
-					<view class="angle-row">
+					<view class="angle-row-wrapper">
 						<text class="angle-label">角度:</text>
-						<slider :value="timer_angle" min="0" max="180" step="10" show-value
-							@change="onTimerAngleChange" />
+						<view class="slider-container">
+							<slider :value="timer_angle" min="0" max="180" step="10" show-value
+								@change="onTimerAngleChange" class="enhanced-slider" />
+						</view>
 					</view>
 					<button class="save-btn" @click="saveTimerSettings" :disabled="isRequesting">保存设置</button>
 				</view>
@@ -128,6 +131,9 @@ export default {
 			// 添加一个新的状态标记，表示本地模式更改优先
 			localModeOverride: false,
 			lastModeChangeTime: 0,
+			isEditingTime: false,    // 标记是否正在编辑时间
+			tempStartTime: "",       // 临时存储编辑中的开始时间
+			tempEndTime: "",         // 临时存储编辑中的结束时间
 		}
 	},
 	onLoad() {
@@ -245,16 +251,21 @@ export default {
 								// 没有本地覆盖时正常更新
 								this.mode = serverMode;
 							}
-							// 新增: 处理定时模式相关数据
-							if (dataMap.start_time) this.start_time = dataMap.start_time;
-							if (dataMap.end_time) this.end_time = dataMap.end_time;
-							if (dataMap.timer_angle !== undefined) this.timer_angle = dataMap.timer_angle;
 
-							// 检查数据是否有更新，显示更新动画
-							if (oldData.light !== this.light || oldData.angle !== this.angle) {
-								this.triggerUpdateAnimation();
+
+							// 处理定时模式相关数据，避免覆盖正在编辑的值
+							if (!this.isEditingTime) {
+								// 只有当用户没有在编辑时才更新时间值
+								if (dataMap.start_time) this.start_time = dataMap.start_time;
+								if (dataMap.end_time) this.end_time = dataMap.end_time;
+							} else {
+								console.log('用户正在编辑时间，跳过服务器数据更新');
 							}
 
+							// 只有在非编辑状态下才更新角度值，防止滑块位置跳变
+							if (!this.isEditingTime && dataMap.timer_angle !== undefined) {
+								this.timer_angle = dataMap.timer_angle;
+							}
 
 							resolve(res.data);
 						} else {
@@ -514,6 +525,11 @@ export default {
 				clearTimeout(this.switchModeTimer);
 				this.switchModeTimer = null;
 			}
+			// 如果从定时模式切换到其他模式，重置编辑标记
+			if (this.mode === 2 && newMode !== 2) {
+				this.isEditingTime = false;
+				console.log('离开定时模式，重置编辑状态');
+			}
 
 			// 1. 立即更新本地UI状态，不显示加载中
 			this.mode = newMode;
@@ -597,19 +613,24 @@ export default {
 			}
 		},
 
-		// 定时开始时间变更处理
+		// 增强时间选择器的点击和变更事件
 		onStartTimeChange(e) {
 			this.start_time = e.detail.value;
+			this.isEditingTime = true;  // 标记用户正在编辑
+			console.log('开始时间已更改, 禁止更新:', this.start_time);
 		},
 
-		// 定时结束时间变更处理
 		onEndTimeChange(e) {
 			this.end_time = e.detail.value;
+			this.isEditingTime = true;  // 标记用户正在编辑
+			console.log('结束时间已更改, 禁止更新:', this.end_time);
 		},
 
-		// 定时模式角度变更处理
+		// 角度变更也应标记为编辑状态
 		onTimerAngleChange(e) {
 			this.timer_angle = e.detail.value;
+			this.isEditingTime = true; // 角度调整也算编辑
+			console.log('定时角度已调整:', this.timer_angle);
 		},
 
 		// 保存定时设置
@@ -639,6 +660,12 @@ export default {
 						title: '定时设置已保存',
 						icon: 'success'
 					});
+					this.isEditingTime = false;  // 保存成功后重置编辑标记
+					console.log('定时设置已保存，允许更新数据');
+				})
+				.catch(() => {
+					// 即使失败也保留编辑状态，确保用户输入不被覆盖
+					console.log('保存失败，保持编辑状态');
 				})
 				.finally(() => {
 					uni.hideLoading();
@@ -880,7 +907,6 @@ export default {
 	width: 80%;
 }
 
-.time-row,
 .angle-row {
 	display: flex;
 	align-items: center;
@@ -891,31 +917,71 @@ export default {
 .angle-label {
 	font-size: 24rpx;
 	color: #6d6d6d;
-	width: 70rpx;
+	width: 100%;
+	margin-bottom: 5rpx;
 }
 
-.time-picker {
-	border: 1px solid #dddddd;
-	padding: 4rpx 16rpx;
-	border-radius: 8rpx;
-	font-size: 24rpx;
-	color: #333333;
-	min-width: 120rpx;
-	text-align: center;
-}
-
-.save-btn {
-	font-size: 24rpx;
-	padding: 10rpx 20rpx;
-	background-color: #2484f1;
-	color: white;
-	border: none;
-	border-radius: 10rpx;
-	margin-top: 10rpx;
-}
 
 .save-btn[disabled] {
 	background-color: #cccccc;
 	opacity: 0.6;
+}
+
+/* 增强型滑块样式 */
+.angle-row-wrapper {
+	display: flex;
+	flex-direction: column;
+	margin-bottom: 20rpx;
+	width: 100%;
+}
+
+.slider-container {
+	width: 100%;
+	padding: 10rpx 0;
+}
+
+.enhanced-slider {
+	width: 100%;
+	height: 60rpx !important;
+	/* 增加高度使滑块更容易触摸 */
+	margin: 15rpx 0;
+}
+
+
+/* 优化时间选择器 */
+.time-row {
+	display: flex;
+	align-items: center;
+	margin-bottom: 20rpx;
+}
+
+.time-picker {
+	border: 1px solid #dddddd;
+	padding: 8rpx 20rpx;
+	/* 增加内边距 */
+	border-radius: 8rpx;
+	font-size: 26rpx;
+	/* 增大字体 */
+	color: #333333;
+	min-width: 140rpx;
+	text-align: center;
+}
+
+/* 禁用时的滑块样式 */
+.uni-slider-disabled .uni-slider-thumb {
+	background-color: #2484f1 !important;
+	opacity: 1 !important;
+}
+
+/* 保存按钮样式优化 */
+.save-btn {
+	font-size: 26rpx;
+	padding: 12rpx 24rpx;
+	background-color: #2484f1;
+	color: white;
+	border: none;
+	border-radius: 10rpx;
+	margin-top: 20rpx;
+	width: 100%;
 }
 </style>
