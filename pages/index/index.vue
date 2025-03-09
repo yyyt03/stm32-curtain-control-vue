@@ -125,6 +125,9 @@ export default {
 			angleCheckTimer: null,  // 角度检查定时器
 			angleCheckCount: 0,     // 角度检查计数
 			_lastClickTime: 0, // 用于按钮防抖
+			// 添加一个新的状态标记，表示本地模式更改优先
+			localModeOverride: false,
+			lastModeChangeTime: 0,
 		}
 	},
 	onLoad() {
@@ -223,21 +226,35 @@ export default {
 							// 根据标识符更新本地数据
 							this.light = dataMap.light; // 光照强度
 							this.angle = dataMap.angle; // 当前角度
-							this.mode = parseInt(dataMap.mode); // 工作模式
+
+							// 模式更新需要特殊处理，避免覆盖本地更改
+							const serverMode = parseInt(dataMap.mode);
+
+							// 如果开启了本地模式覆盖，检查时间戳
+							if (this.localModeOverride) {
+								const now = Date.now();
+								// 如果本地模式切换后的5秒内，忽略服务器模式值
+								if (now - this.lastModeChangeTime < 5000) {
+									console.log('忽略服务器模式更新，保持本地模式:', this.mode);
+								} else {
+									// 5秒后恢复正常更新
+									this.localModeOverride = false;
+									this.mode = serverMode;
+								}
+							} else {
+								// 没有本地覆盖时正常更新
+								this.mode = serverMode;
+							}
 							// 新增: 处理定时模式相关数据
 							if (dataMap.start_time) this.start_time = dataMap.start_time;
 							if (dataMap.end_time) this.end_time = dataMap.end_time;
 							if (dataMap.timer_angle !== undefined) this.timer_angle = dataMap.timer_angle;
 
 							// 检查数据是否有更新，显示更新动画
-							if (oldData.light !== this.light ||
-								oldData.angle !== this.angle ||
-								oldData.mode !== this.mode) {
+							if (oldData.light !== this.light || oldData.angle !== this.angle) {
 								this.triggerUpdateAnimation();
 							}
-							// 更新本地模式并记录当前设备模式
-							this.mode = parseInt(dataMap.mode);
-							this.currentDeviceMode = this.mode;
+
 
 							resolve(res.data);
 						} else {
@@ -489,6 +506,9 @@ export default {
 			}
 			this.lastSwitchTime = now;
 
+			// 设置本地模式覆盖标志和时间戳
+			this.localModeOverride = true;
+			this.lastModeChangeTime = now;
 			// 清除任何现有定时器
 			if (this.switchModeTimer) {
 				clearTimeout(this.switchModeTimer);
@@ -507,6 +527,10 @@ export default {
 
 			// 3. 在后台发送API请求，不影响用户操作
 			this.sendPropertyUpdate({ "mode": newMode }, true)
+				.then(() => {
+					// API成功后，保持本地覆盖一段时间，确保UI稳定
+					console.log('模式切换API成功');
+				})
 				.catch(err => {
 					console.log('模式切换请求失败，尝试重试:', err);
 
@@ -515,7 +539,6 @@ export default {
 						this.sendPropertyUpdate({ "mode": newMode }, true)
 							.catch(err => {
 								console.log('模式切换重试失败:', err);
-								// 即使重试失败也保持UI状态不变
 							});
 					}, 1000);
 				});
