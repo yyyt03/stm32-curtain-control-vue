@@ -37,7 +37,7 @@
 				</view>
 			</view>
 
-			<!-- 定时控制卡片（仅定时模式显示） -->
+			<!-- 修改定时控制卡片 - 移除保存按钮 -->
 			<view class="dev-card timer-card" v-if="mode === 2">
 				<view class="">
 					<view class="dev-name">定时控制</view>
@@ -64,7 +64,7 @@
 								@change="onTimerAngleChange" class="enhanced-slider" />
 						</view>
 					</view>
-					<button class="save-btn" @click="saveTimerSettings" :disabled="isRequesting">保存设置</button>
+					<!-- 移除保存按钮 -->
 				</view>
 			</view>
 
@@ -134,6 +134,8 @@ export default {
 			isEditingTime: false,    // 标记是否正在编辑时间
 			tempStartTime: "",       // 临时存储编辑中的开始时间
 			tempEndTime: "",         // 临时存储编辑中的结束时间
+			saveTimer: null,    // 用于防抖保存的定时器
+			savingProperty: '', // 当前正在保存的属性名
 		}
 	},
 	onLoad() {
@@ -617,79 +619,86 @@ export default {
 		onStartTimeChange(e) {
 			this.start_time = e.detail.value;
 			this.isEditingTime = true;  // 标记用户正在编辑
-			console.log('开始时间已更改, 禁止更新:', this.start_time);
+			console.log('开始时间已更改:', this.start_time);
+			this.debounceSave('start_time', this.start_time);
 		},
 
 		onEndTimeChange(e) {
 			this.end_time = e.detail.value;
 			this.isEditingTime = true;  // 标记用户正在编辑
-			console.log('结束时间已更改, 禁止更新:', this.end_time);
+			console.log('结束时间已更改:', this.end_time);
+			this.debounceSave('end_time', this.end_time);
 		},
 
-		// 角度变更也应标记为编辑状态
+		// 角度变更也应标记为编辑状态，并自动保存
 		onTimerAngleChange(e) {
 			this.timer_angle = e.detail.value;
 			this.isEditingTime = true; // 角度调整也算编辑
 			console.log('定时角度已调整:', this.timer_angle);
+			this.debounceSave('timer_angle', parseInt(this.timer_angle));
 		},
 
-		// 重写保存定时设置方法
-		saveTimerSettings() {
-			// 验证时间格式
-			const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
-			if (!timeRegex.test(this.start_time) || !timeRegex.test(this.end_time)) {
-				uni.showToast({
-					title: '时间格式不正确',
-					icon: 'none'
-				});
-				return;
+		// 新增：防抖保存方法
+		debounceSave(property, value) {
+			// 取消之前的定时器
+			if (this.saveTimer) {
+				clearTimeout(this.saveTimer);
 			}
-			
-			// 准备要更新的属性
-			const startTime = this.start_time;
-			const endTime = this.end_time;
-			const timerAngle = parseInt(this.timer_angle);
-			
-			// 显示保存进度提示
-			uni.showLoading({ title: '正在保存开始时间...' });
-			
-			// 单独发送每个参数
-			this.sendOneProperty('start_time', startTime)
+
+			// 设置新的定时器，延迟800ms后保存
+			this.saveTimer = setTimeout(() => {
+				this.saveProperty(property, value);
+			}, 800);
+		},
+
+		// 新增：保存单个属性
+		saveProperty(property, value) {
+			// 避免重复保存同一属性
+			if (this.savingProperty === property) return;
+
+			this.savingProperty = property;
+
+			// 显示保存状态
+			uni.showLoading({
+				title: `正在保存${property === 'start_time' ? '开始时间' :
+					property === 'end_time' ? '结束时间' : '角度'}...`
+			});
+
+			// 发送属性
+			this.sendOneProperty(property, value)
+				.then(() => {
+					uni.hideLoading();
+					uni.showToast({
+						title: '设置已保存',
+						icon: 'success',
+						duration: 1000
+					});
+				})
+				.catch(err => {
+					console.error('保存失败:', err);
+					uni.hideLoading();
+					uni.showToast({
+						title: '保存失败，请重试',
+						icon: 'none'
+					});
+				})
 				.finally(() => {
-					// 不管上一个成功或失败，继续发送下一个参数
+					this.savingProperty = '';
+					// 保存完成后2秒钟再恢复同步
 					setTimeout(() => {
-						uni.showLoading({ title: '正在保存结束时间...' });
-						
-						this.sendOneProperty('end_time', endTime)
-							.finally(() => {
-								setTimeout(() => {
-									uni.showLoading({ title: '正在保存角度...' });
-									
-									this.sendOneProperty('timer_angle', timerAngle)
-										.finally(() => {
-											// 所有参数发送完成
-											uni.hideLoading();
-											uni.showToast({
-												title: '定时设置已保存',
-												icon: 'success'
-											});
-											this.isEditingTime = false;
-											console.log('全部定时参数已发送');
-										});
-								}, 500);
-							});
-					}, 500);
+						this.isEditingTime = false;
+					}, 2000);
 				});
 		},
-		
+
 		// 新增：发送单个属性的简化方法
 		sendOneProperty(key, value) {
 			// 构造单属性参数对象
 			const params = {};
 			params[key] = value;
-			
+
 			console.log(`发送单个属性 ${key}:`, value);
-			
+
 			return new Promise((resolve) => {
 				// 始终使用isModeSwitch=true避开请求锁
 				this.sendPropertyUpdate(params, true)
