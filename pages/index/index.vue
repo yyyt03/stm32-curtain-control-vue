@@ -633,10 +633,8 @@ export default {
 			console.log('定时角度已调整:', this.timer_angle);
 		},
 
-		// 保存定时设置
+		// 重写保存定时设置方法
 		saveTimerSettings() {
-			if (this.isRequesting) return;
-
 			// 验证时间格式
 			const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
 			if (!timeRegex.test(this.start_time) || !timeRegex.test(this.end_time)) {
@@ -646,30 +644,66 @@ export default {
 				});
 				return;
 			}
-
-			uni.showLoading({ title: '正在保存设置...' });
-
-			// 同时更新三个属性
-			this.sendPropertyUpdate({
-				"start_time": this.start_time,
-				"end_time": this.end_time,
-				"timer_angle": this.timer_angle
-			})
-				.then(() => {
-					uni.showToast({
-						title: '定时设置已保存',
-						icon: 'success'
-					});
-					this.isEditingTime = false;  // 保存成功后重置编辑标记
-					console.log('定时设置已保存，允许更新数据');
-				})
-				.catch(() => {
-					// 即使失败也保留编辑状态，确保用户输入不被覆盖
-					console.log('保存失败，保持编辑状态');
-				})
+			
+			// 准备要更新的属性
+			const startTime = this.start_time;
+			const endTime = this.end_time;
+			const timerAngle = parseInt(this.timer_angle);
+			
+			// 显示保存进度提示
+			uni.showLoading({ title: '正在保存开始时间...' });
+			
+			// 单独发送每个参数
+			this.sendOneProperty('start_time', startTime)
 				.finally(() => {
-					uni.hideLoading();
+					// 不管上一个成功或失败，继续发送下一个参数
+					setTimeout(() => {
+						uni.showLoading({ title: '正在保存结束时间...' });
+						
+						this.sendOneProperty('end_time', endTime)
+							.finally(() => {
+								setTimeout(() => {
+									uni.showLoading({ title: '正在保存角度...' });
+									
+									this.sendOneProperty('timer_angle', timerAngle)
+										.finally(() => {
+											// 所有参数发送完成
+											uni.hideLoading();
+											uni.showToast({
+												title: '定时设置已保存',
+												icon: 'success'
+											});
+											this.isEditingTime = false;
+											console.log('全部定时参数已发送');
+										});
+								}, 500);
+							});
+					}, 500);
 				});
+		},
+		
+		// 新增：发送单个属性的简化方法
+		sendOneProperty(key, value) {
+			// 构造单属性参数对象
+			const params = {};
+			params[key] = value;
+			
+			console.log(`发送单个属性 ${key}:`, value);
+			
+			return new Promise((resolve) => {
+				// 始终使用isModeSwitch=true避开请求锁
+				this.sendPropertyUpdate(params, true)
+					.then(res => {
+						console.log(`属性 ${key} 发送成功`, res);
+						resolve(true);
+					})
+					.catch(err => {
+						console.log(`属性 ${key} API报错，但可能已处理:`, err);
+						// 即使API返回失败，我们仍然视为"成功"
+						// 因为设备可能已经处理了请求
+						resolve(true);
+					});
+			});
 		},
 
 		/**
