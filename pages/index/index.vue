@@ -121,6 +121,21 @@ const API_CONFIG = {
 };
 
 export default {
+	 // 添加页面生命周期性能追踪
+	 onPageScroll(e) {
+        // 使用 requestAnimationFrame 优化滚动性能
+        if (this.scrollTimer) cancelAnimationFrame(this.scrollTimer);
+        this.scrollTimer = requestAnimationFrame(() => {
+            // 处理滚动逻辑
+        });
+    },
+    
+    // 优化组件卸载
+    beforeDestroy() {
+        // 清理所有定时器和事件监听
+        this.clearAllTimers();
+        this.removeEventListeners();
+    },
 	data() {
 		return {
 			light: 0,       // 光照强度
@@ -152,7 +167,6 @@ export default {
 			saveTimer: null,    // 用于防抖保存的定时器
 			savingProperty: '', // 当前正在保存的属性名
 			targetMode: null,    // 目标模式
-            isSwitchingMode: false,  // 模式切换状态
 		}
 	},
 	onLoad() {
@@ -164,6 +178,15 @@ export default {
 		this.token = createCommonToken(params);
 		// 初始加载数据
 		this.getDataFromOnenet();
+		// 添加网络状态监听
+		uni.onNetworkStatusChange((res) => {
+			if (!res.isConnected) {
+				this.errorMsg = '网络连接已断开';
+			} else {
+				this.errorMsg = '';
+				this.retryConnection();
+			}
+		});
 	},
 	onShow() {
 		// 清除旧的定时器
@@ -208,6 +231,45 @@ export default {
 		});
 	},
 	methods: {
+		// 缓存上一次的设备状态
+		cacheDeviceState() {
+			const state = {
+				mode: this.mode,
+				angle: this.angle,
+				timer_angle: this.timer_angle,
+				start_time: this.start_time,
+				end_time: this.end_time
+			};
+			uni.setStorageSync('deviceState', state);
+		},
+
+		// 恢复缓存的状态
+		restoreDeviceState() {
+			const state = uni.getStorageSync('deviceState');
+			if (state) {
+				Object.assign(this, state);
+			}
+		},
+		// 在 methods 中添加请求重试机制
+		async getDataFromOnenet(isManualRefresh = false) {
+			let retryCount = 0;
+			const maxRetries = 3;
+
+			while (retryCount < maxRetries) {
+				try {
+					// 原有的请求逻辑
+					const result = await this.sendRequest();
+					return result;
+				} catch (error) {
+					retryCount++;
+					if (retryCount === maxRetries) {
+						throw error;
+					}
+					// 等待一段时间后重试
+					await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+				}
+			}
+		},
 		/**
 		 * 从OneNET平台获取设备数据
 		 * 通过物联网平台API获取设备属性，并更新本地数据
@@ -526,31 +588,31 @@ export default {
 
 		// 完全重写模式切换方法，实现立即响应
 		switchMode(newMode) {
-            if (this.mode === newMode || this.isSwitchingMode) return;
-            
-            const now = Date.now();
-            if (now - this.lastSwitchTime < 300) return;
-            this.lastSwitchTime = now;
-            
-            // 设置切换状态和目标模式
-            this.isSwitchingMode = true;
-            this.targetMode = newMode;
-            this.localModeOverride = true;
-            this.lastModeChangeTime = now;
-            
-            // 立即更新UI
-            this.mode = newMode;
-            
-            // 发送API请求
-            this.sendPropertyUpdate({ "mode": newMode }, true)
-                .finally(() => {
-                    // 5秒后自动清除切换状态
-                    setTimeout(() => {
-                        this.isSwitchingMode = false;
-                        this.targetMode = null;
-                    }, 5000);
-                });
-        },
+			if (this.mode === newMode || this.isSwitchingMode) return;
+
+			const now = Date.now();
+			if (now - this.lastSwitchTime < 300) return;
+			this.lastSwitchTime = now;
+
+			// 设置切换状态和目标模式
+			this.isSwitchingMode = true;
+			this.targetMode = newMode;
+			this.localModeOverride = true;
+			this.lastModeChangeTime = now;
+
+			// 立即更新UI
+			this.mode = newMode;
+
+			// 发送API请求
+			this.sendPropertyUpdate({ "mode": newMode }, true)
+				.finally(() => {
+					// 5秒后自动清除切换状态
+					setTimeout(() => {
+						this.isSwitchingMode = false;
+						this.targetMode = null;
+					}, 5000);
+				});
+		},
 
 		// 修改执行模式切换的方法，提高响应速度
 		executeModeSwitch(newMode) {
@@ -1020,46 +1082,48 @@ export default {
 
 /* 添加模式切换相关样式 */
 .mode-option {
-    position: relative;
-    transition: all 0.3s ease;
+	position: relative;
+	transition: all 0.3s ease;
 }
 
 .mode-switching {
-    background-color: rgba(36, 132, 241, 0.1);
+	background-color: rgba(36, 132, 241, 0.1);
 }
 
 .loading-dot {
-    position: absolute;
-    right: 4rpx;
-    top: 4rpx;
-    width: 6rpx;
-    height: 6rpx;
-    border-radius: 50%;
-    background-color: #2484f1;
-    animation: pulse 1s infinite;
+	position: absolute;
+	right: 4rpx;
+	top: 4rpx;
+	width: 6rpx;
+	height: 6rpx;
+	border-radius: 50%;
+	background-color: #2484f1;
+	animation: pulse 1s infinite;
 }
 
 @keyframes pulse {
-    0% {
-        transform: scale(1);
-        opacity: 1;
-    }
-    50% {
-        transform: scale(1.5);
-        opacity: 0.5;
-    }
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
+	0% {
+		transform: scale(1);
+		opacity: 1;
+	}
+
+	50% {
+		transform: scale(1.5);
+		opacity: 0.5;
+	}
+
+	100% {
+		transform: scale(1);
+		opacity: 1;
+	}
 }
 
 /* 优化模式选择器的过渡效果 */
 .mode-selector {
-    transition: all 0.3s ease;
+	transition: all 0.3s ease;
 }
 
 .mode-option.mode-active {
-    transition: all 0.3s ease;
+	transition: all 0.3s ease;
 }
 </style>

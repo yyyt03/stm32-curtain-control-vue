@@ -26,6 +26,12 @@ _vue.default.config.productionTip = false;
 _App.default.mpType = 'app';
 var app = new _vue.default(_objectSpread({}, _App.default));
 createApp(app).$mount();
+
+// 添加全局错误处理
+_vue.default.config.errorHandler = function (err, vm, info) {
+  console.error('全局错误:', err);
+  // 可以在这里添加错误上报逻辑
+};
 /* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/wx.js */ 1)["default"], __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["createApp"]))
 
 /***/ }),

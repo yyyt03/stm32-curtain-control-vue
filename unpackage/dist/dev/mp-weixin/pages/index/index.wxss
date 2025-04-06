@@ -227,63 +227,63 @@
 
 /* 添加模式切换相关样式 */
 .mode-option {
-    position: relative;
-    transition: all 0.3s ease;
+	position: relative;
+	transition: all 0.3s ease;
 }
 .mode-switching {
-    background-color: rgba(36, 132, 241, 0.1);
+	background-color: rgba(36, 132, 241, 0.1);
 }
 .loading-dot {
-    position: absolute;
-    right: 4rpx;
-    top: 4rpx;
-    width: 6rpx;
-    height: 6rpx;
-    border-radius: 50%;
-    background-color: #2484f1;
-    -webkit-animation: pulse 1s infinite;
-            animation: pulse 1s infinite;
+	position: absolute;
+	right: 4rpx;
+	top: 4rpx;
+	width: 6rpx;
+	height: 6rpx;
+	border-radius: 50%;
+	background-color: #2484f1;
+	-webkit-animation: pulse 1s infinite;
+	        animation: pulse 1s infinite;
 }
 @-webkit-keyframes pulse {
 0% {
-        -webkit-transform: scale(1);
-                transform: scale(1);
-        opacity: 1;
+		-webkit-transform: scale(1);
+		        transform: scale(1);
+		opacity: 1;
 }
 50% {
-        -webkit-transform: scale(1.5);
-                transform: scale(1.5);
-        opacity: 0.5;
+		-webkit-transform: scale(1.5);
+		        transform: scale(1.5);
+		opacity: 0.5;
 }
 100% {
-        -webkit-transform: scale(1);
-                transform: scale(1);
-        opacity: 1;
+		-webkit-transform: scale(1);
+		        transform: scale(1);
+		opacity: 1;
 }
 }
 @keyframes pulse {
 0% {
-        -webkit-transform: scale(1);
-                transform: scale(1);
-        opacity: 1;
+		-webkit-transform: scale(1);
+		        transform: scale(1);
+		opacity: 1;
 }
 50% {
-        -webkit-transform: scale(1.5);
-                transform: scale(1.5);
-        opacity: 0.5;
+		-webkit-transform: scale(1.5);
+		        transform: scale(1.5);
+		opacity: 0.5;
 }
 100% {
-        -webkit-transform: scale(1);
-                transform: scale(1);
-        opacity: 1;
+		-webkit-transform: scale(1);
+		        transform: scale(1);
+		opacity: 1;
 }
 }
 
 /* 优化模式选择器的过渡效果 */
 .mode-selector {
-    transition: all 0.3s ease;
+	transition: all 0.3s ease;
 }
 .mode-option.mode-active {
-    transition: all 0.3s ease;
+	transition: all 0.3s ease;
 }
 

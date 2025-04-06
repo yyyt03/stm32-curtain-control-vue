@@ -20,3 +20,9 @@ export function createApp() {
   }
 }
 // #endif
+
+// 添加全局错误处理
+Vue.config.errorHandler = function(err, vm, info) {
+    console.error('全局错误:', err);
+    // 可以在这里添加错误上报逻辑
+};
