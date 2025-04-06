@@ -10,7 +10,7 @@
 			<view class="dev-card">
 				<view class="">
 					<view class="dev-name">控制模式</view>
-					<image class="dev-log" src="../../static/curtain.png"></image>
+					<image class="dev-log" src="../../static/模式.png"></image>
 				</view>
 				<view class="curtain-control">
 					<view class="mode-selector">
@@ -28,7 +28,7 @@
 			<view class="dev-card" v-if="mode === 1">
 				<view class="">
 					<view class="dev-name">手动控制</view>
-					<image class="dev-log" src="../../static/curtain.png"></image>
+					<image class="dev-log" src="../../static/手动控制.png"></image>
 				</view>
 				<!-- 去掉按钮的disabled绑定，因为我们现在允许并发请求 -->
 				<view class="manual-control">
@@ -41,7 +41,7 @@
 			<view class="dev-card timer-card" v-if="mode === 2">
 				<view class="">
 					<view class="dev-name">定时控制</view>
-					<image class="dev-log" src="../../static/curtain.png"></image>
+					<image class="dev-log" src="../../static/定时任务.png"></image>
 				</view>
 				<view class="timer-control">
 					<view class="time-row">
@@ -72,14 +72,14 @@
 			<view class="dev-card">
 				<view class="">
 					<view class="dev-name">光照强度</view>
-					<image class="dev-log" src="../../static/curtain.png"></image>
+					<image class="dev-log" src="../../static/光照强度.png"></image>
 				</view>
 				<view class="dev-data" :class="{ 'data-updated': dataUpdated }">{{ light }}lux</view>
 			</view>
 			<view class="dev-card">
 				<view class="">
 					<view class="dev-name">当前角度</view>
-					<image class="dev-log" src="../../static/curtain.png"></image>
+					<image class="dev-log" src="../../static/旋转角度.png"></image>
 				</view>
 				<view class="dev-data">{{ angle }}°</view>
 			</view>

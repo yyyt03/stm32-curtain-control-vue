@@ -1,6 +1,7 @@
 
 .wrap {
 	padding: 30rpx;
+	position: relative;
 }
 .dev-area {
 	display: flex;
@@ -13,7 +14,7 @@
 	border-radius: 30rpx;
 	margin-top: 30rpx;
 	display: flex;
-	justify-content:space-around;
+	justify-content: space-around;
 	align-items: center;
 	box-shadow: 0 0 15rpx #ccc;
 }
@@ -30,5 +31,197 @@
 .dev-data {
 	font-size: 50rpx;
 	color: #6d6d6d;
+}
+.curtain-control {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+.mode-switch {
+	display: flex;
+	align-items: center;
+	font-size: 24rpx;
+	color: #6d6d6d;
+}
+.manual-control {
+	display: flex;
+	gap: 10rpx;
+}
+.control-btn {
+	font-size: 24rpx;
+	padding: 10rpx 20rpx;
+	background-color: #2484f1;
+	color: white;
+	border: none;
+	border-radius: 10rpx;
+	min-width: 80rpx;
+	transition: all 0.3s;
+}
+.control-btn:active {
+	-webkit-transform: scale(0.95);
+	        transform: scale(0.95);
+	opacity: 0.8;
+}
+.control-btn[disabled] {
+	background-color: #cccccc;
+	opacity: 0.6;
+}
+
+/* 添加数据更新动画 */
+.data-updated {
+	-webkit-animation: highlight 1s ease;
+	        animation: highlight 1s ease;
+}
+@-webkit-keyframes highlight {
+0% {
+		color: #6d6d6d;
+}
+30% {
+		color: #2484f1;
+}
+100% {
+		color: #6d6d6d;
+}
+}
+@keyframes highlight {
+0% {
+		color: #6d6d6d;
+}
+30% {
+		color: #2484f1;
+}
+100% {
+		color: #6d6d6d;
+}
+}
+
+/* 错误提示样式 */
+.error-message {
+	position: fixed;
+	bottom: 30rpx;
+	left: 0;
+	right: 0;
+	background-color: rgba(255, 0, 0, 0.1);
+	padding: 20rpx;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-direction: column;
+}
+.retry-btn {
+	margin-top: 10rpx;
+	font-size: 24rpx;
+	padding: 10rpx 30rpx;
+	background-color: #f15a24;
+	color: white;
+	border-radius: 10rpx;
+}
+
+/* 刷新提示 */
+.refresh-tip {
+	text-align: center;
+	padding: 10rpx 0;
+	font-size: 24rpx;
+	color: #2484f1;
+}
+
+/* 模式选择器样式 */
+.mode-selector {
+	display: flex;
+	border-radius: 8rpx;
+	overflow: hidden;
+	border: 1px solid #2484f1;
+}
+.mode-option {
+	padding: 6rpx 16rpx;
+	font-size: 22rpx;
+	color: #2484f1;
+	background-color: #ffffff;
+	transition: all 0.3s;
+}
+.mode-active {
+	background-color: #2484f1;
+	color: white;
+}
+
+/* 定时卡片样式 */
+.timer-card {
+	height: auto;
+	width: 100%;
+	padding: 20rpx;
+	box-sizing: border-box;
+}
+.timer-control {
+	width: 80%;
+}
+.angle-row {
+	display: flex;
+	align-items: center;
+	margin-bottom: 15rpx;
+}
+.time-label,
+.angle-label {
+	font-size: 24rpx;
+	color: #6d6d6d;
+	width: 100%;
+	margin-bottom: 5rpx;
+}
+.save-btn[disabled] {
+	background-color: #cccccc;
+	opacity: 0.6;
+}
+
+/* 增强型滑块样式 */
+.angle-row-wrapper {
+	display: flex;
+	flex-direction: column;
+	margin-bottom: 20rpx;
+	width: 100%;
+}
+.slider-container {
+	width: 100%;
+	padding: 10rpx 0;
+}
+.enhanced-slider {
+	width: 100%;
+	height: 60rpx !important;
+	/* 增加高度使滑块更容易触摸 */
+	margin: 15rpx 0;
+}
+
+/* 优化时间选择器 */
+.time-row {
+	display: flex;
+	align-items: center;
+	margin-bottom: 20rpx;
+}
+.time-picker {
+	border: 1px solid #dddddd;
+	padding: 8rpx 20rpx;
+	/* 增加内边距 */
+	border-radius: 8rpx;
+	font-size: 26rpx;
+	/* 增大字体 */
+	color: #333333;
+	min-width: 140rpx;
+	text-align: center;
+}
+
+/* 禁用时的滑块样式 */
+.uni-slider-disabled .uni-slider-thumb {
+	background-color: #2484f1 !important;
+	opacity: 1 !important;
+}
+
+/* 保存按钮样式优化 */
+.save-btn {
+	font-size: 26rpx;
+	padding: 12rpx 24rpx;
+	background-color: #2484f1;
+	color: white;
+	border: none;
+	border-radius: 10rpx;
+	margin-top: 20rpx;
+	width: 100%;
 }
 

@@ -351,6 +351,10 @@ var promiseInterceptor = {
     }
     return new Promise(function (resolve, reject) {
       res.then(function (res) {
+        if (!res) {
+          resolve(res);
+          return;
+        }
         if (res[0]) {
           reject(res[0]);
         } else {
@@ -360,7 +364,7 @@ var promiseInterceptor = {
     });
   }
 };
-var SYNC_API_RE = /^\$|Window$|WindowStyle$|sendHostEvent|sendNativeEvent|restoreGlobal|requireGlobal|getCurrentSubNVue|getMenuButtonBoundingClientRect|^report|interceptors|Interceptor$|getSubNVueById|requireNativePlugin|upx2px|hideKeyboard|canIUse|^create|Sync$|Manager$|base64ToArrayBuffer|arrayBufferToBase64|getLocale|setLocale|invokePushCallback|getWindowInfo|getDeviceInfo|getAppBaseInfo|getSystemSetting|getAppAuthorizeSetting|initUTS|requireUTS|registerUTS/;
+var SYNC_API_RE = /^\$|Window$|WindowStyle$|sendHostEvent|sendNativeEvent|restoreGlobal|requireGlobal|getCurrentSubNVue|getMenuButtonBoundingClientRect|^report|interceptors|Interceptor$|getSubNVueById|requireNativePlugin|rpx2px|upx2px|hideKeyboard|canIUse|^create|Sync$|Manager$|base64ToArrayBuffer|arrayBufferToBase64|getLocale|setLocale|invokePushCallback|getWindowInfo|getDeviceInfo|getAppBaseInfo|getSystemSetting|getAppAuthorizeSetting|initUTS|requireUTS|registerUTS/;
 var CONTEXT_API_RE = /^create|Manager$/;
 
 // Context例外情况
@@ -433,10 +437,12 @@ var isIOS = false;
 var deviceWidth = 0;
 var deviceDPR = 0;
 function checkDeviceWidth() {
-  var _wx$getSystemInfoSync = wx.getSystemInfoSync(),
-    platform = _wx$getSystemInfoSync.platform,
-    pixelRatio = _wx$getSystemInfoSync.pixelRatio,
-    windowWidth = _wx$getSystemInfoSync.windowWidth; // uni=>wx runtime 编译目标是 uni 对象，内部不允许直接使用 uni
+  var _Object$assign = Object.assign({}, wx.getWindowInfo(), {
+      platform: wx.getDeviceInfo().platform
+    }),
+    windowWidth = _Object$assign.windowWidth,
+    pixelRatio = _Object$assign.pixelRatio,
+    platform = _Object$assign.platform; // uni=>wx runtime 编译目标是 uni 对象，内部不允许直接使用 uni
 
   deviceWidth = windowWidth;
   deviceDPR = pixelRatio;
@@ -472,7 +478,7 @@ var LOCALE_ES = 'es';
 var messages = {};
 var locale;
 {
-  locale = normalizeLocale(wx.getSystemInfoSync().language) || LOCALE_EN;
+  locale = normalizeLocale(wx.getAppBaseInfo().language) || LOCALE_EN;
 }
 function initI18nMessages() {
   if (!isEnableLocale()) {
@@ -594,7 +600,7 @@ function getLocale$1() {
       return app.$vm.$locale;
     }
   }
-  return normalizeLocale(wx.getSystemInfoSync().language) || LOCALE_EN;
+  return normalizeLocale(wx.getAppBaseInfo().language) || LOCALE_EN;
 }
 function setLocale$1(locale) {
   var app = isFn(getApp) ? getApp() : false;
@@ -628,6 +634,7 @@ var interceptors = {
 var baseApi = /*#__PURE__*/Object.freeze({
   __proto__: null,
   upx2px: upx2px,
+  rpx2px: upx2px,
   getLocale: getLocale$1,
   setLocale: setLocale$1,
   onLocaleChange: onLocaleChange,
@@ -780,8 +787,9 @@ function populateParameters(result) {
     appVersion: "1.0.0",
     appVersionCode: "100",
     appLanguage: getAppLanguage(hostLanguage),
-    uniCompileVersion: "4.24",
-    uniRuntimeVersion: "4.24",
+    uniCompileVersion: "4.44",
+    uniCompilerVersion: "4.44",
+    uniRuntimeVersion: "4.44",
     uniPlatform: undefined || "mp-weixin",
     deviceBrand: deviceBrand,
     deviceModel: model,
@@ -804,7 +812,8 @@ function populateParameters(result) {
     ua: undefined,
     hostPackageName: undefined,
     browserName: undefined,
-    browserVersion: undefined
+    browserVersion: undefined,
+    isUniAppX: false
   };
   Object.assign(result, parameters, extraParam);
 }
@@ -883,7 +892,12 @@ var getAppBaseInfo = {
       hostLanguage: hostLanguage,
       hostName: _hostName,
       hostSDKVersion: SDKVersion,
-      hostTheme: theme
+      hostTheme: theme,
+      isUniAppX: false,
+      uniPlatform: undefined || "mp-weixin",
+      uniCompileVersion: "4.44",
+      uniCompilerVersion: "4.44",
+      uniRuntimeVersion: "4.44"
     }));
   }
 };
@@ -2110,7 +2124,7 @@ function parseBaseApp(vm, _ref4) {
       appOptions[name] = methods[name];
     });
   }
-  initAppLocale(_vue.default, vm, normalizeLocale(wx.getSystemInfoSync().language) || LOCALE_EN);
+  initAppLocale(_vue.default, vm, normalizeLocale(wx.getAppBaseInfo().language) || LOCALE_EN);
   initHooks(appOptions, hooks);
   initUnknownHooks(appOptions, vm.$options);
   return appOptions;
@@ -3395,7 +3409,7 @@ module.exports = _createClass, module.exports.__esModule = true, module.exports[
 __webpack_require__.r(__webpack_exports__);
 /* WEBPACK VAR INJECTION */(function(global) {/*!
  * Vue.js v2.6.11
- * (c) 2014-2023 Evan You
+ * (c) 2014-2024 Evan You
  * Released under the MIT License.
  */
 /*  */
@@ -3908,7 +3922,7 @@ var hasProto = '__proto__' in {};
 var inBrowser = typeof window !== 'undefined';
 var inWeex = typeof WXEnvironment !== 'undefined' && !!WXEnvironment.platform;
 var weexPlatform = inWeex && WXEnvironment.platform.toLowerCase();
-var UA = inBrowser && window.navigator.userAgent.toLowerCase();
+var UA = inBrowser && window.navigator && window.navigator.userAgent.toLowerCase();
 var isIE = UA && /msie|trident/.test(UA);
 var isIE9 = UA && UA.indexOf('msie 9.0') > 0;
 var isEdge = UA && UA.indexOf('edge/') > 0;
@@ -9466,9 +9480,9 @@ internalMixin(Vue);
 
 /***/ }),
 /* 26 */
-/*!*********************************************************************************************************!*\
-  !*** F:/stm32c8t6+esp8266+Onenet+Uniapp/OneNet温湿度上报与LED灯控制UniApp测试/p5-ONENET下命令_控制LED灯_匹配图标/pages.json ***!
-  \*********************************************************************************************************/
+/*!*****************************************************!*\
+  !*** E:/data/TEST/BY/之后。/毕设/物联网Demo/上位机/pages.json ***!
+  \*****************************************************/
 /*! no static exports found */
 /***/ (function(module, exports) {
 
@@ -21039,9 +21053,9 @@ function normalizeComponent (
 
 /***/ }),
 /* 40 */
-/*!***********************************************************************************************************************!*\
-  !*** F:/stm32c8t6+esp8266+Onenet+Uniapp/OneNet温湿度上报与LED灯控制UniApp测试/p5-ONENET下命令_控制LED灯_匹配图标/uni.promisify.adaptor.js ***!
-  \***********************************************************************************************************************/
+/*!*******************************************************************!*\
+  !*** E:/data/TEST/BY/之后。/毕设/物联网Demo/上位机/uni.promisify.adaptor.js ***!
+  \*******************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -21068,9 +21082,9 @@ uni.addInterceptor({
 /* 45 */,
 /* 46 */,
 /* 47 */
-/*!*****************************************************************************************************!*\
-  !*** F:/stm32c8t6+esp8266+Onenet+Uniapp/OneNet温湿度上报与LED灯控制UniApp测试/p5-ONENET下命令_控制LED灯_匹配图标/key.js ***!
-  \*****************************************************************************************************/
+/*!*************************************************!*\
+  !*** E:/data/TEST/BY/之后。/毕设/物联网Demo/上位机/key.js ***!
+  \*************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -21091,7 +21105,7 @@ function createCommonToken(params) {
 module.exports = {
   createCommonToken: createCommonToken
 };
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../HBuilderX.4.24.2024072208/HBuilderX/plugins/uniapp-cli/node_modules/buffer/index.js */ 48).Buffer))
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../../../Program Files/HBuilderX/plugins/uniapp-cli/node_modules/buffer/index.js */ 48).Buffer))
 
 /***/ }),
 /* 48 */

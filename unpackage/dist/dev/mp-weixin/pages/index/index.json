@@ -1,4 +1,7 @@
 {
-  "navigationBarTitleText": "温湿度上报与LED灯控制",
+  "navigationBarTitleText": "智能窗帘控制系统",
+  "navigationBarBackgroundColor": "#2484f1",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
   "usingComponents": {}
 }
