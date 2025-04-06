@@ -14,11 +14,26 @@
 				</view>
 				<view class="curtain-control">
 					<view class="mode-selector">
-						<view class="mode-option" :class="{ 'mode-active': mode === 0 }" @click="switchMode(0)">自动
+						<view class="mode-option" :class="{
+							'mode-active': mode === 0,
+							'mode-switching': isSwitchingMode && targetMode === 0
+						}" @click="switchMode(0)">
+							<text>自动</text>
+							<view class="loading-dot" v-if="isSwitchingMode && targetMode === 0"></view>
 						</view>
-						<view class="mode-option" :class="{ 'mode-active': mode === 1 }" @click="switchMode(1)">手动
+						<view class="mode-option" :class="{
+							'mode-active': mode === 1,
+							'mode-switching': isSwitchingMode && targetMode === 1
+						}" @click="switchMode(1)">
+							<text>手动</text>
+							<view class="loading-dot" v-if="isSwitchingMode && targetMode === 1"></view>
 						</view>
-						<view class="mode-option" :class="{ 'mode-active': mode === 2 }" @click="switchMode(2)">定时
+						<view class="mode-option" :class="{
+							'mode-active': mode === 2,
+							'mode-switching': isSwitchingMode && targetMode === 2
+						}" @click="switchMode(2)">
+							<text>定时</text>
+							<view class="loading-dot" v-if="isSwitchingMode && targetMode === 2"></view>
 						</view>
 					</view>
 				</view>
@@ -136,6 +151,8 @@ export default {
 			tempEndTime: "",         // 临时存储编辑中的结束时间
 			saveTimer: null,    // 用于防抖保存的定时器
 			savingProperty: '', // 当前正在保存的属性名
+			targetMode: null,    // 目标模式
+            isSwitchingMode: false,  // 模式切换状态
 		}
 	},
 	onLoad() {
@@ -509,58 +526,31 @@ export default {
 
 		// 完全重写模式切换方法，实现立即响应
 		switchMode(newMode) {
-			// 基础检查
-			if (this.mode === newMode) return;
-
-			// 防抖动处理
-			const now = Date.now();
-			if (now - this.lastSwitchTime < 300) {
-				return;
-			}
-			this.lastSwitchTime = now;
-
-			// 设置本地模式覆盖标志和时间戳
-			this.localModeOverride = true;
-			this.lastModeChangeTime = now;
-			// 清除任何现有定时器
-			if (this.switchModeTimer) {
-				clearTimeout(this.switchModeTimer);
-				this.switchModeTimer = null;
-			}
-			// 如果从定时模式切换到其他模式，重置编辑标记
-			if (this.mode === 2 && newMode !== 2) {
-				this.isEditingTime = false;
-				console.log('离开定时模式，重置编辑状态');
-			}
-
-			// 1. 立即更新本地UI状态，不显示加载中
-			this.mode = newMode;
-
-			// 2. 显示简短的切换提示，不阻塞界面
-			uni.showToast({
-				title: `已切换到${newMode === 0 ? '自动' : newMode === 1 ? '手动' : '定时'}模式`,
-				icon: 'success',
-				duration: 1500
-			});
-
-			// 3. 在后台发送API请求，不影响用户操作
-			this.sendPropertyUpdate({ "mode": newMode }, true)
-				.then(() => {
-					// API成功后，保持本地覆盖一段时间，确保UI稳定
-					console.log('模式切换API成功');
-				})
-				.catch(err => {
-					console.log('模式切换请求失败，尝试重试:', err);
-
-					// 静默重试一次
-					setTimeout(() => {
-						this.sendPropertyUpdate({ "mode": newMode }, true)
-							.catch(err => {
-								console.log('模式切换重试失败:', err);
-							});
-					}, 1000);
-				});
-		},
+            if (this.mode === newMode || this.isSwitchingMode) return;
+            
+            const now = Date.now();
+            if (now - this.lastSwitchTime < 300) return;
+            this.lastSwitchTime = now;
+            
+            // 设置切换状态和目标模式
+            this.isSwitchingMode = true;
+            this.targetMode = newMode;
+            this.localModeOverride = true;
+            this.lastModeChangeTime = now;
+            
+            // 立即更新UI
+            this.mode = newMode;
+            
+            // 发送API请求
+            this.sendPropertyUpdate({ "mode": newMode }, true)
+                .finally(() => {
+                    // 5秒后自动清除切换状态
+                    setTimeout(() => {
+                        this.isSwitchingMode = false;
+                        this.targetMode = null;
+                    }, 5000);
+                });
+        },
 
 		// 修改执行模式切换的方法，提高响应速度
 		executeModeSwitch(newMode) {
@@ -1026,5 +1016,50 @@ export default {
 	border-radius: 10rpx;
 	margin-top: 20rpx;
 	width: 100%;
+}
+
+/* 添加模式切换相关样式 */
+.mode-option {
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.mode-switching {
+    background-color: rgba(36, 132, 241, 0.1);
+}
+
+.loading-dot {
+    position: absolute;
+    right: 4rpx;
+    top: 4rpx;
+    width: 6rpx;
+    height: 6rpx;
+    border-radius: 50%;
+    background-color: #2484f1;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.5);
+        opacity: 0.5;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* 优化模式选择器的过渡效果 */
+.mode-selector {
+    transition: all 0.3s ease;
+}
+
+.mode-option.mode-active {
+    transition: all 0.3s ease;
 }
 </style>

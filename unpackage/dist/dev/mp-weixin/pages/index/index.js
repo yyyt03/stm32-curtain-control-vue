@@ -277,6 +277,21 @@ var _defineProperty2 = _interopRequireDefault(__webpack_require__(/*! @babel/run
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 var _require = __webpack_require__(/*! @/key.js */ 47),
   createCommonToken = _require.createCommonToken;
@@ -289,7 +304,7 @@ var API_CONFIG = {
 };
 var _default = {
   data: function data() {
-    return {
+    return (0, _defineProperty2.default)({
       light: 0,
       // 光照强度
       angle: 90,
@@ -341,8 +356,10 @@ var _default = {
       // 临时存储编辑中的结束时间
       saveTimer: null,
       // 用于防抖保存的定时器
-      savingProperty: '' // 当前正在保存的属性名
-    };
+      savingProperty: '',
+      // 当前正在保存的属性名
+      targetMode: null
+    }, "isSwitchingMode", false);
   },
   onLoad: function onLoad() {
     var params = {
@@ -716,57 +733,29 @@ var _default = {
     // 完全重写模式切换方法，实现立即响应
     switchMode: function switchMode(newMode) {
       var _this9 = this;
-      // 基础检查
-      if (this.mode === newMode) return;
-
-      // 防抖动处理
+      if (this.mode === newMode || this.isSwitchingMode) return;
       var now = Date.now();
-      if (now - this.lastSwitchTime < 300) {
-        return;
-      }
+      if (now - this.lastSwitchTime < 300) return;
       this.lastSwitchTime = now;
 
-      // 设置本地模式覆盖标志和时间戳
+      // 设置切换状态和目标模式
+      this.isSwitchingMode = true;
+      this.targetMode = newMode;
       this.localModeOverride = true;
       this.lastModeChangeTime = now;
-      // 清除任何现有定时器
-      if (this.switchModeTimer) {
-        clearTimeout(this.switchModeTimer);
-        this.switchModeTimer = null;
-      }
-      // 如果从定时模式切换到其他模式，重置编辑标记
-      if (this.mode === 2 && newMode !== 2) {
-        this.isEditingTime = false;
-        console.log('离开定时模式，重置编辑状态');
-      }
 
-      // 1. 立即更新本地UI状态，不显示加载中
+      // 立即更新UI
       this.mode = newMode;
 
-      // 2. 显示简短的切换提示，不阻塞界面
-      uni.showToast({
-        title: "\u5DF2\u5207\u6362\u5230".concat(newMode === 0 ? '自动' : newMode === 1 ? '手动' : '定时', "\u6A21\u5F0F"),
-        icon: 'success',
-        duration: 1500
-      });
-
-      // 3. 在后台发送API请求，不影响用户操作
+      // 发送API请求
       this.sendPropertyUpdate({
         "mode": newMode
-      }, true).then(function () {
-        // API成功后，保持本地覆盖一段时间，确保UI稳定
-        console.log('模式切换API成功');
-      }).catch(function (err) {
-        console.log('模式切换请求失败，尝试重试:', err);
-
-        // 静默重试一次
+      }, true).finally(function () {
+        // 5秒后自动清除切换状态
         setTimeout(function () {
-          _this9.sendPropertyUpdate({
-            "mode": newMode
-          }, true).catch(function (err) {
-            console.log('模式切换重试失败:', err);
-          });
-        }, 1000);
+          _this9.isSwitchingMode = false;
+          _this9.targetMode = null;
+        }, 5000);
       });
     },
     // 修改执行模式切换的方法，提高响应速度
